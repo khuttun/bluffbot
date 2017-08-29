@@ -10,6 +10,8 @@ import (
 
 // BotAPI offers an interface to the Telegram bot API
 type BotAPI struct {
+	// Port to start listening for updates from Telegram
+	Port string
 	// Send Telegram API requests here
 	TelegramURL string
 	// Function to handle updates coming from Telegram bot API
@@ -29,7 +31,8 @@ func (b *BotAPI) SendMessage(chatid int, text string) {
 // Start receiving updates from Telegram bot API. Blocks.
 func (b *BotAPI) StartReceivingUpdates() {
 	http.HandleFunc("/", b.httpReqHandler)
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("Starting to listen port", b.Port)
+	http.ListenAndServe(fmt.Sprintf(":%v", b.Port), nil)
 }
 
 func (b *BotAPI) makeRequest(method string, params interface{}) {

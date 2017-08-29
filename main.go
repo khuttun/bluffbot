@@ -11,19 +11,22 @@ import (
 )
 
 func main() {
-	args := os.Args[1:]
+	port := os.Getenv("PORT")
+	username := os.Getenv("USERNAME")
+	token := os.Getenv("TELEGRAM_TOKEN")
+	webhook := os.Getenv("WEBHOOK")
 
-	if len(args) < 3 {
-		fmt.Println("Usage:", os.Args[0], "bot_username telegram_token webhook_addr")
+	if port == "" || username == "" || token == "" || webhook == "" {
+		fmt.Println("Expecting following environment variables to be set:")
+		fmt.Println("PORT")
+		fmt.Println("USERNAME")
+		fmt.Println("TELEGRAM_TOKEN")
+		fmt.Println("WEBHOOK")
 		os.Exit(1)
 	}
 
-	username := args[0]
-	token := args[1]
-	webhook := args[2]
-
 	rand.Seed(time.Now().UTC().UnixNano())
-	t := telegram.BotAPI{TelegramURL: fmt.Sprintf("https://api.telegram.org/bot%v/", token)}
+	t := telegram.BotAPI{Port: port, TelegramURL: fmt.Sprintf("https://api.telegram.org/bot%v/", token)}
 	b := bluff.NewBot(username, &t)
 	t.UpdateHandler = b.HandleUpdate
 	t.SetWebhook(webhook)
