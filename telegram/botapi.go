@@ -20,12 +20,29 @@ type BotAPI struct {
 
 // Set URL where Telegram bot API sends updates
 func (b *BotAPI) SetWebhook(url string) {
-	b.makeRequest("setWebhook", setWebhookParams{url})
+	b.makeRequest("setWebhook", SetWebhookParams{url})
 }
 
 // Send Telegram message
 func (b *BotAPI) SendMessage(chatid int, text string) {
-	b.makeRequest("sendMessage", sendMessageParams{chatid, text})
+	b.makeRequest("sendMessage", SendMessageParams{ChatID: chatid, Text: text})
+}
+
+// Send Telegram message and display custom keyboard for the users
+func (b *BotAPI) SendMessageAndDisplayCustomKeyboard(chatid int, text string, kb [][]string) {
+	keyb := make([][]KeyboardButton, len(kb))
+	for row := range kb {
+		keyb[row] = make([]KeyboardButton, len(kb[row]))
+		for col := range kb[row] {
+			keyb[row][col] = KeyboardButton{kb[row][col]}
+		}
+	}
+	b.makeRequest("sendMessage", SendMessageParams{ChatID: chatid, Text: text, ReplyMarkup: &ReplyKeyboardMarkup{Keyboard: keyb}})
+}
+
+// Send Telegram message and remove current custom keyboard
+func (b *BotAPI) SendMessageAndRemoveCustomKeyboard(chatid int, text string) {
+	b.makeRequest("sendMessage", SendMessageParams{ChatID: chatid, Text: text, ReplyMarkup: &ReplyKeyboardRemove{RemoveKeyboard: true}})
 }
 
 // Start receiving updates from Telegram bot API. Blocks.
@@ -94,17 +111,4 @@ func (b *BotAPI) httpReqHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	b.UpdateHandler(upd)
-}
-
-// setWebhookParams defines parameters for Telegram API setWebhook method
-type setWebhookParams struct {
-	URL string `json:"url"`
-}
-
-// sendMessageParams defines parameters for Telegram API sendMessage method
-type sendMessageParams struct {
-	// Unique identifier for the target chat
-	ChatID int `json:"chat_id"`
-	// Text of the message to be sent
-	Text string `json:"text"`
 }

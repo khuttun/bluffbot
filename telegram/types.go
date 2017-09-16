@@ -43,3 +43,52 @@ type Update struct {
 	// Optional. New incoming message of any kind — text, photo, sticker, etc.
 	Message *Message `json:"message"`
 }
+
+// SetWebhookParams defines parameters for Telegram API setWebhook method
+type SetWebhookParams struct {
+	// HTTPS url to send updates to. Use an empty string to remove webhook integration.
+	URL string `json:"url"`
+}
+
+// KeyboardButton represents one button of the reply keyboard.
+type KeyboardButton struct {
+	// Text of the button. It will be sent to the bot as a message when the button is pressed.
+	Text string `json:"text"`
+}
+
+// ReplyKeyboardMarkup represents a custom keyboard with reply options.
+type ReplyKeyboardMarkup struct {
+	// Array of button rows, each represented by an Array of KeyboardButton objects.
+	Keyboard [][]KeyboardButton `json:"keyboard"`
+	// Optional. Requests clients to resize the keyboard vertically for optimal fit.
+	ResizeKeyboard *bool `json:"resize_keyboard,omitempty"`
+	// Optional. Requests clients to hide the keyboard as soon as it's been used.
+	OneTimeKeyboard *bool `json:"one_time_keyboard,omitempty"`
+	// Optional. Use this parameter if you want to show the keyboard to specific users only.
+	// Targets:
+	// 1) users that are @mentioned in the text of the Message object
+	// 2) if the bot's message is a reply (has reply_to_message_id), sender of the original message.
+	Selective *bool `json:"selective,omitempty"`
+}
+
+// ReplyKeyboardRemove is used to remove custom keyboard from chat.
+type ReplyKeyboardRemove struct {
+	// Requests clients to remove the custom keyboard. Should always be true.
+	RemoveKeyboard bool `json:"remove_keyboard"`
+	// Optional. Use this parameter if you want to remove the keyboard for specific users only. Targets:
+	// 1) users that are @mentioned in the text of the Message object;
+	// 2) if the bot's message is a reply (has reply_to_message_id), sender of the original message.
+	Selective *bool `json:"selective,omitempty"`
+}
+
+// SendMessageParams defines parameters for Telegram API sendMessage method
+type SendMessageParams struct {
+	// Unique identifier for the target chat
+	ChatID int `json:"chat_id"`
+	// Text of the message to be sent
+	Text string `json:"text"`
+	// Optional. Add/remove custom keyboard. Allowed types:
+	// - ReplyKeyboardMarkup
+	// - ReplyKeyboardRemove
+	ReplyMarkup interface{} `json:"reply_markup,omitempty"`
+}

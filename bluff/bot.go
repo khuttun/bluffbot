@@ -30,7 +30,7 @@ func (b *Bot) HandleUpdate(u telegram.Update) {
 		b.onStopCmd(cmdParts[1:], *u.Message)
 	case beginCmd:
 		b.onBeginCmd(cmdParts[1:], *u.Message)
-	case bidCmd:
+	case bidCmd, bidButtonText:
 		b.onBidCmd(cmdParts[1:], *u.Message)
 	case challengeCmd:
 		b.onChallengeCmd(cmdParts[1:], *u.Message)
@@ -42,12 +42,12 @@ func (b *Bot) HandleUpdate(u telegram.Update) {
 func (b *Bot) onStartCmd(params []string, msg telegram.Message) {
 	if len(params) == 0 { // No params: start game
 		if _, gameFound := b.games[msg.Chat.ID]; !gameFound {
-			b.games[msg.Chat.ID] = &Game{}
 			response := fmt.Sprintf("Starting a new game of %v! ", gameName)
-			response += fmt.Sprintf("Use the below link to join the game. Once everyone has joined, send %v command to begin the game.", beginCmd)
+			response += "Use the below link and click the START button in the opened chat window to join the game. "
+			response += fmt.Sprintf("Once everyone has joined, send %v command to begin the game.", beginCmd)
 			response += "\n\n"
 			response += fmt.Sprintf("https://telegram.me/%v?start=%v", b.username, msg.Chat.ID)
-			b.telegram.SendMessage(msg.Chat.ID, response)
+			b.startGame(msg.Chat.ID, response)
 		} else {
 			b.telegram.SendMessage(msg.Chat.ID, "There's already a game started in this chat")
 		}
@@ -73,8 +73,7 @@ func (b *Bot) onStartCmd(params []string, msg telegram.Message) {
 
 func (b *Bot) onStopCmd(params []string, msg telegram.Message) {
 	if _, gameFound := b.games[msg.Chat.ID]; gameFound {
-		delete(b.games, msg.Chat.ID)
-		b.telegram.SendMessage(msg.Chat.ID, "Game ended")
+		b.finishGame(msg.Chat.ID, "Game ended")
 	} else {
 		b.telegram.SendMessage(msg.Chat.ID, "No game started in this chat")
 	}
@@ -84,8 +83,6 @@ func (b *Bot) onBeginCmd(params []string, msg telegram.Message) {
 	if g, gameFound := b.games[msg.Chat.ID]; gameFound {
 		err := g.StartGame()
 		if err == nil {
-			b.sendHands(g, msg.Chat.Title)
-
 			response := "The game begins. All the players should have now received their first round hand from me as a private message."
 			response += "\n\n"
 			response += fmt.Sprintf("Send \"%v count dice\" command to make a bid.", bidCmd)
@@ -94,8 +91,7 @@ func (b *Bot) onBeginCmd(params []string, msg telegram.Message) {
 			response += fmt.Sprintf("Send %v command to challenge current bid.", challengeCmd)
 			response += "\n\n"
 			response += turnMsg(g)
-
-			b.telegram.SendMessage(msg.Chat.ID, response)
+			b.beginRound(&msg.Chat, g, response)
 		} else {
 			b.telegram.SendMessage(msg.Chat.ID, err.Error())
 		}
@@ -134,7 +130,7 @@ func (b *Bot) onBidCmd(params []string, msg telegram.Message) {
 		return
 	}
 
-	b.telegram.SendMessage(msg.Chat.ID, fmt.Sprintf("%v bid %v %vs.%v", msg.From.FirstName, count, diceToString(d), turnMsg(g)))
+	b.telegram.SendMessageAndDisplayCustomKeyboard(msg.Chat.ID, fmt.Sprintf("%v bid %v %vs.%v", msg.From.FirstName, count, diceToString(d), turnMsg(g)), keyboard(g))
 }
 
 func (b *Bot) onChallengeCmd(params []string, msg telegram.Message) {
@@ -180,13 +176,26 @@ func (b *Bot) onChallengeCmd(params []string, msg telegram.Message) {
 	switch g.State {
 	case STARTED:
 		response += fmt.Sprintf("Starting next round. %v", turnMsg(g))
-		b.sendHands(g, msg.Chat.Title)
+		b.beginRound(&msg.Chat, g, response)
 	case FINISHED:
 		response += fmt.Sprintf("Game finished! %v is the winner!", winner)
-		delete(b.games, msg.Chat.ID)
+		b.finishGame(msg.Chat.ID, response)
 	}
+}
 
-	b.telegram.SendMessage(msg.Chat.ID, response)
+func (b *Bot) startGame(chatId int, msg string) {
+	b.games[chatId] = &Game{}
+	b.telegram.SendMessage(chatId, msg)
+}
+
+func (b *Bot) finishGame(chatId int, msg string) {
+	b.telegram.SendMessageAndRemoveCustomKeyboard(chatId, msg)
+	delete(b.games, chatId)
+}
+
+func (b *Bot) beginRound(chat *telegram.Chat, g *Game, msg string) {
+	b.telegram.SendMessageAndDisplayCustomKeyboard(chat.ID, msg, keyboard(g))
+	b.sendHands(g, chat.Title)
 }
 
 func (b *Bot) sendHands(g *Game, chatname *string) {
@@ -206,6 +215,7 @@ const stopCmd = "/stop"
 const beginCmd = "/begin"
 const bidCmd = "/bid"
 const challengeCmd = "/challenge"
+const bidButtonText = "Bid"
 
 func gameStatusMsg(g *Game) string {
 	msg := "Game status:"
@@ -242,17 +252,17 @@ func diceToString(d Dice) string {
 
 func stringToDice(s string) (Dice, error) {
 	switch s {
-	case "*":
+	case "*", diceToString(WILD):
 		return WILD, nil
-	case "1":
+	case "1", diceToString(ONE):
 		return ONE, nil
-	case "2":
+	case "2", diceToString(TWO):
 		return TWO, nil
-	case "3":
+	case "3", diceToString(THREE):
 		return THREE, nil
-	case "4":
+	case "4", diceToString(FOUR):
 		return FOUR, nil
-	case "5":
+	case "5", diceToString(FIVE):
 		return FIVE, nil
 	default:
 		return WILD, fmt.Errorf("Unknown dice: %v", s)
@@ -265,4 +275,48 @@ func handToString(hand []Dice) string {
 		s += diceToString(d)
 	}
 	return s
+}
+
+func keyboard(g *Game) [][]string {
+	b := g.CurrentBid
+	kb := make([][]string, 4)
+	for row := range kb {
+		kb[row] = make([]string, 4)
+		for col := range kb[row] {
+			b = nextBid(b)
+			kb[row][col] = bidButton(b)
+		}
+	}
+	return kb
+}
+
+func bidButton(b Bid) string {
+	return fmt.Sprintf("%v %v %v", bidButtonText, b.Count, diceToString(b.Dice))
+}
+
+func nextBid(b Bid) Bid {
+	c := b.effectiveCount()
+	if c < 1 {
+		return Bid{Dice: ONE, Count: 1}
+	}
+	switch b.Dice {
+	case WILD:
+		return Bid{Dice: ONE, Count: c}
+	case ONE:
+		return Bid{Dice: TWO, Count: c}
+	case TWO:
+		return Bid{Dice: THREE, Count: c}
+	case THREE:
+		return Bid{Dice: FOUR, Count: c}
+	case FOUR:
+		return Bid{Dice: FIVE, Count: c}
+	case FIVE:
+		switch c % 2 {
+		case 0:
+			return Bid{Dice: ONE, Count: c + 1}
+		case 1:
+			return Bid{Dice: WILD, Count: c/2 + 1}
+		}
+	}
+	return Bid{Dice: ONE, Count: 1}
 }
