@@ -295,28 +295,5 @@ func bidButton(b Bid) string {
 }
 
 func nextBid(b Bid) Bid {
-	c := b.effectiveCount()
-	if c < 1 {
-		return Bid{Dice: ONE, Count: 1}
-	}
-	switch b.Dice {
-	case WILD:
-		return Bid{Dice: ONE, Count: c}
-	case ONE:
-		return Bid{Dice: TWO, Count: c}
-	case TWO:
-		return Bid{Dice: THREE, Count: c}
-	case THREE:
-		return Bid{Dice: FOUR, Count: c}
-	case FOUR:
-		return Bid{Dice: FIVE, Count: c}
-	case FIVE:
-		switch c % 2 {
-		case 0:
-			return Bid{Dice: ONE, Count: c + 1}
-		case 1:
-			return Bid{Dice: WILD, Count: c/2 + 1}
-		}
-	}
-	return Bid{Dice: ONE, Count: 1}
+	return bidFromScore(b.score() + 1)
 }

@@ -1,6 +1,8 @@
 package bluff
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestAddPlayer(t *testing.T) {
 	var g Game
@@ -130,6 +132,71 @@ func TestBidding(t *testing.T) {
 	}
 	if g.CurrentBid != bBid {
 		t.Fail()
+	}
+}
+
+var scores = []struct {
+	score int
+	bid Bid
+}{
+	{0, Bid{Count: 0, Dice: ONE}},
+	{1, Bid{Count: 1, Dice: ONE}},
+	{2, Bid{Count: 1, Dice: TWO}},
+	{3, Bid{Count: 1, Dice: THREE}},
+	{4, Bid{Count: 1, Dice: FOUR}},
+	{5, Bid{Count: 1, Dice: FIVE}},
+	{6, Bid{Count: 1, Dice: WILD}},
+	{7, Bid{Count: 2, Dice: ONE}},
+	{8, Bid{Count: 2, Dice: TWO}},
+	{9, Bid{Count: 2, Dice: THREE}},
+	{10, Bid{Count: 2, Dice: FOUR}},
+	{11, Bid{Count: 2, Dice: FIVE}},
+	{12, Bid{Count: 3, Dice: ONE}},
+	{13, Bid{Count: 3, Dice: TWO}},
+	{14, Bid{Count: 3, Dice: THREE}},
+	{15, Bid{Count: 3, Dice: FOUR}},
+	{16, Bid{Count: 3, Dice: FIVE}},
+	{17, Bid{Count: 2, Dice: WILD}},
+	{18, Bid{Count: 4, Dice: ONE}},
+	{19, Bid{Count: 4, Dice: TWO}},
+	{20, Bid{Count: 4, Dice: THREE}},
+	{21, Bid{Count: 4, Dice: FOUR}},
+	{22, Bid{Count: 4, Dice: FIVE}},
+	{23, Bid{Count: 5, Dice: ONE}},
+	{24, Bid{Count: 5, Dice: TWO}},
+	{25, Bid{Count: 5, Dice: THREE}},
+	{26, Bid{Count: 5, Dice: FOUR}},
+	{27, Bid{Count: 5, Dice: FIVE}},
+	{28, Bid{Count: 3, Dice: WILD}},
+	{29, Bid{Count: 6, Dice: ONE}},
+	{30, Bid{Count: 6, Dice: TWO}},
+	{31, Bid{Count: 6, Dice: THREE}},
+	{32, Bid{Count: 6, Dice: FOUR}},
+	{33, Bid{Count: 6, Dice: FIVE}},
+	{34, Bid{Count: 7, Dice: ONE}},
+	{35, Bid{Count: 7, Dice: TWO}},
+	{36, Bid{Count: 7, Dice: THREE}},
+	{37, Bid{Count: 7, Dice: FOUR}},
+	{38, Bid{Count: 7, Dice: FIVE}},
+	{39, Bid{Count: 4, Dice: WILD}},
+	{40, Bid{Count: 8, Dice: ONE}},
+}
+
+func TestBidScore(t *testing.T) {
+	for _, score := range scores {
+		s := score.bid.score()
+		if s != score.score {
+			t.Fail()
+		}
+	}
+}
+
+func TestBidFromScore(t *testing.T) {
+	for _, score := range scores {
+		b := bidFromScore(score.score)
+		if b.Count != score.bid.Count || b.Dice != score.bid.Dice {
+			t.Fail()
+		}
 	}
 }
 

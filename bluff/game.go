@@ -61,12 +61,34 @@ type Bid struct {
 	Count    int
 }
 
-// "effective count" can be used to compare bids
-func (b *Bid) effectiveCount() int {
-	if b.Dice == WILD {
-		return 2 * b.Count
+// Calculate score from bid to enable comparing bids
+func (b *Bid) score() int {
+	if b.Count <= 0 {
+		return 0
+	} else if b.Dice == WILD {
+		return 6 + (b.Count - 1) * 11
 	}
-	return b.Count
+	// Leave "space" for stars
+	stars := b.Count / 2
+	return (b.Count - 1) * 5 + int(b.Dice) + stars
+}
+
+// Return quotient and remainder
+func divmod(x, y int) (quot, rem int) {
+	return x / y, x % y
+}
+
+// Construct a bid from score value
+func bidFromScore(score int) Bid {
+	if score <= 0 {
+		return Bid{Count: 0, Dice: ONE}
+	}
+	stars, starsRem := divmod(score + 5, 11)
+	if starsRem == 0 {
+		return Bid{Count: stars, Dice: WILD}
+	}
+	count, face := divmod(score - stars - 1, 5)
+	return Bid{Count: count + 1, Dice: Dice(face + 1)}
 }
 
 type BidClass int
@@ -222,9 +244,7 @@ func (g *Game) ChallengeCurrentBid(playerID int) (ChallengeResult, error) {
 
 // Compare two bids: is b1 > b2?
 func isGreater(b1 Bid, b2 Bid) bool {
-	c1 := b1.effectiveCount()
-	c2 := b2.effectiveCount()
-	return c1 > c2 || (c1 == c2 && b1.Dice > b2.Dice)
+	return b1.score() > b2.score()
 }
 
 // Find index of next Player with > 0 dice
