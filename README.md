@@ -1,5 +1,7 @@
 # bluffbot
 
+[![Build Status](https://travis-ci.org/khuttun/bluffbot.svg?branch=master)](https://travis-ci.org/khuttun/bluffbot)
+
 bluffbot is a [Telegram bot](https://core.telegram.org/bots) for playing a game of [Liar's dice (aka Bluff)](https://en.wikipedia.org/wiki/Liar%27s_dice). It's implemented in Go. Build the project with
 
 ```
